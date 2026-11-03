@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MonthExpenseData, ExpenseCategory } from '../types';
 import { MONTH_NAMES, CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR, YEAR_PALETTES } from '../constants';
+import { formatCurrency } from '../utils/formatCurrency';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   Legend, LineChart, Line
@@ -180,7 +181,7 @@ export const MultiYearComparisonView: React.FC<MultiYearComparisonViewProps> = (
                   <span className="font-semibold text-slate-700">{entry.dataKey}:</span>
                 </span>
                 <span className="font-black text-slate-900">
-                  ${Number(entry.value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {formatCurrency(Number(entry.value))}
                 </span>
               </div>
             ))}
@@ -275,13 +276,13 @@ export const MultiYearComparisonView: React.FC<MultiYearComparisonViewProps> = (
             </div>
 
             <p className="text-2xl font-black text-slate-900 mt-2">
-              ${yStat.totalSpend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(yStat.totalSpend)}
             </p>
 
             <div className="flex items-center justify-between text-xs text-slate-500 mt-2 pt-2 border-t border-slate-100">
               <span>Avg/month:</span>
               <span className="font-semibold text-slate-800">
-                ${yStat.avgMonthly.toFixed(2)}
+                {formatCurrency(yStat.avgMonthly)}
               </span>
             </div>
           </div>
@@ -306,7 +307,7 @@ export const MultiYearComparisonView: React.FC<MultiYearComparisonViewProps> = (
                   {totalYoYDiff > 0 ? '+' : ''}{totalYoYPercent.toFixed(1)}%
                 </span>
                 <span className="text-xs font-semibold text-slate-500">
-                  ({totalYoYDiff > 0 ? '+' : ''}${totalYoYDiff.toFixed(2)})
+                  ({formatCurrency(totalYoYDiff, { signed: true })})
                 </span>
               </div>
             </div>
@@ -315,12 +316,12 @@ export const MultiYearComparisonView: React.FC<MultiYearComparisonViewProps> = (
               {totalYoYDiff > 0 ? (
                 <>
                   <TrendingUp className="h-3.5 w-3.5 text-rose-600 shrink-0" />
-                  <span>Annual spending increased by ${(totalYoYDiff).toFixed(2)}</span>
+                  <span>Annual spending increased by {formatCurrency(totalYoYDiff)}</span>
                 </>
               ) : totalYoYDiff < 0 ? (
                 <>
                   <TrendingDown className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                  <span>Annual spending decreased by ${(Math.abs(totalYoYDiff)).toFixed(2)}</span>
+                  <span>Annual spending decreased by {formatCurrency(Math.abs(totalYoYDiff))}</span>
                 </>
               ) : (
                 <span>No change in total expenditure</span>
@@ -388,7 +389,7 @@ export const MultiYearComparisonView: React.FC<MultiYearComparisonViewProps> = (
                   />
                   <YAxis
                     tick={{ fill: '#64748b', fontSize: 12 }}
-                    tickFormatter={(val) => `$${val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}`}
+                    tickFormatter={(val) => formatCurrency(val, { compact: true })}
                   />
                   <Tooltip content={<CustomCategoryTooltip />} />
                   <Legend verticalAlign="top" height={36} />
@@ -439,10 +440,10 @@ export const MultiYearComparisonView: React.FC<MultiYearComparisonViewProps> = (
                   <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 11 }} />
                   <YAxis
                     tick={{ fill: '#64748b', fontSize: 12 }}
-                    tickFormatter={(val) => `$${val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}`}
+                    tickFormatter={(val) => formatCurrency(val, { compact: true })}
                   />
                   <Tooltip
-                    formatter={(val: any) => [`$${Number(val).toFixed(2)}`, 'Spend']}
+                    formatter={(val: any) => [formatCurrency(Number(val)), 'Spend']}
                     contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}
                   />
                   <Legend verticalAlign="top" height={36} />
@@ -538,7 +539,7 @@ export const MultiYearComparisonView: React.FC<MultiYearComparisonViewProps> = (
 
                         return (
                           <td key={yStat.year} className="py-3 px-5 text-right font-medium text-slate-800">
-                            <div>${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            <div>{formatCurrency(amount)}</div>
                             <div className="text-[10px] text-slate-400 font-normal">
                               {pctOfYr.toFixed(1)}% of {yStat.year}
                             </div>
@@ -551,7 +552,7 @@ export const MultiYearComparisonView: React.FC<MultiYearComparisonViewProps> = (
                         <>
                           <td className="py-3 px-5 text-right font-bold">
                             <span className={diff > 0 ? 'text-rose-600' : diff < 0 ? 'text-emerald-600' : 'text-slate-500'}>
-                              {diff > 0 ? '+' : ''}${diff.toFixed(2)}
+                              {formatCurrency(diff, { signed: true })}
                             </span>
                           </td>
 
@@ -593,14 +594,14 @@ export const MultiYearComparisonView: React.FC<MultiYearComparisonViewProps> = (
                   <td className="py-3 px-5">Overall Annual Expenditure</td>
                   {yearlyStats.map((yStat) => (
                     <td key={yStat.year} className="py-3 px-5 text-right text-base text-brand-700">
-                      ${yStat.totalSpend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(yStat.totalSpend)}
                     </td>
                   ))}
                   {hasMultipleYears && (
                     <>
                       <td className="py-3 px-5 text-right text-base">
                         <span className={totalYoYDiff > 0 ? 'text-rose-600' : totalYoYDiff < 0 ? 'text-emerald-600' : 'text-slate-700'}>
-                          {totalYoYDiff > 0 ? '+' : ''}${totalYoYDiff.toFixed(2)}
+                          {formatCurrency(totalYoYDiff, { signed: true })}
                         </span>
                       </td>
                       <td className="py-3 px-5 text-right text-base">

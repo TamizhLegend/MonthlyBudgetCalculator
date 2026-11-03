@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { RecurringExpense, ExpenseCategory } from '../types';
 import { CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from '../constants';
+import { formatCurrency } from '../utils/formatCurrency';
 import { 
   RefreshCw, Plus, Trash2, CheckCircle2, DollarSign, 
   Calendar, Layers, ShieldCheck, Tag, Sparkles, Check, Edit2 
@@ -93,7 +94,7 @@ export const RecurringManagerView: React.FC<RecurringManagerViewProps> = ({
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setErrorMsg('Please enter a valid expense amount greater than $0.');
+      setErrorMsg('Please enter a valid expense amount greater than ₹0.');
       return;
     }
 
@@ -182,7 +183,7 @@ export const RecurringManagerView: React.FC<RecurringManagerViewProps> = ({
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900 mt-2">
-            ${totalMonthlyCommitment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {formatCurrency(totalMonthlyCommitment)}
           </p>
           <span className="text-xs text-slate-500 mt-1 inline-block">
             Across {activeItems.length} active recurring item{activeItems.length !== 1 ? 's' : ''}
@@ -197,7 +198,7 @@ export const RecurringManagerView: React.FC<RecurringManagerViewProps> = ({
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900 mt-2">
-            ${totalAnnualCommitment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {formatCurrency(totalAnnualCommitment)}
           </p>
           <span className="text-xs text-slate-500 mt-1 inline-block">
             12 months of predictable commitments
@@ -364,7 +365,7 @@ export const RecurringManagerView: React.FC<RecurringManagerViewProps> = ({
                 </p>
               </div>
               <span className="text-xs font-black text-brand-700 bg-brand-50 px-2.5 py-1 rounded-full border border-brand-200">
-                ${totalMonthlyCommitment.toFixed(2)}/mo
+                {formatCurrency(totalMonthlyCommitment)}/mo
               </span>
             </div>
 
@@ -434,7 +435,7 @@ export const RecurringManagerView: React.FC<RecurringManagerViewProps> = ({
                       <div className="flex items-center space-x-2 shrink-0">
                         <div className="text-right">
                           <span className="text-base font-black text-slate-900 block">
-                            ${item.amount.toFixed(2)}
+                            {formatCurrency(item.amount)}
                           </span>
                           <span className="text-[10px] text-slate-400 font-medium">per month</span>
                         </div>

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { MonthExpenseData } from '../types';
 import { downloadMonthJsonFile, downloadAllDataBackup } from '../services/storageService';
+import { formatCurrency } from '../utils/formatCurrency';
 import { 
   FileJson, Download, Upload, CheckCircle2, AlertCircle, 
   Copy, Check, FileText 
@@ -167,7 +168,7 @@ export const JsonHubView: React.FC<JsonHubViewProps> = ({
                       {m.monthName}_{m.year}.json
                     </div>
                     <div className="text-[11px] text-slate-500 mt-0.5">
-                      {m.items.length} items &bull; ${total.toFixed(2)}
+                      {m.items.length} items &bull; {formatCurrency(total)}
                     </div>
                   </div>
 

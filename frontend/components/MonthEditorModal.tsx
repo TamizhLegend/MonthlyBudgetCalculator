@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { MonthExpenseData, ExpenseItem, ExpenseCategory, RecurringExpense } from '../types';
 import { MONTH_NAMES, CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from '../constants';
 import { downloadMonthJsonFile } from '../services/storageService';
+import { formatCurrency } from '../utils/formatCurrency';
 import { 
   X, Plus, Trash2, Calendar, Download, DollarSign, 
   Tag, FileText, CheckCircle2, AlertCircle, ArrowUpDown,
@@ -172,7 +173,7 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
 
     const parsedAmount = parseFloat(newItemAmount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setErrorMsg('Please enter a valid amount greater than $0.');
+      setErrorMsg('Please enter a valid amount greater than ₹0.');
       return;
     }
 
@@ -484,7 +485,7 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
                             <span className="text-xs font-semibold text-slate-800 truncate">{catName}</span>
                           </span>
                           <span className="text-[11px] text-slate-500 font-mono">
-                            Spent: ${curSpend.toFixed(0)}
+                            Spent: {formatCurrency(curSpend, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
 
@@ -627,7 +628,7 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
                   <div className="flex items-center justify-between text-xs mb-1">
                     <span className="font-semibold text-slate-700 flex items-center gap-1">
                       <span>Budget for {activeCategoryForNew}:</span>
-                      <span className="text-slate-500">${currentCategoryBudget.toFixed(2)}</span>
+                      <span className="text-slate-500">{formatCurrency(currentCategoryBudget)}</span>
                     </span>
                     {(() => {
                       const pct = Math.round((projectedCategorySpend / currentCategoryBudget) * 100);
@@ -655,13 +656,13 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
                           />
                         </div>
                         <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
-                          <span>Currently: ${currentCategorySpend.toFixed(2)}</span>
+                          <span>Currently: {formatCurrency(currentCategorySpend)}</span>
                           {parsedNewAmount > 0 && (
                             <span className="font-medium text-slate-700">
-                              + ${parsedNewAmount.toFixed(2)} &rarr; New Total: ${projectedCategorySpend.toFixed(2)}
+                              + {formatCurrency(parsedNewAmount)} &rarr; New Total: {formatCurrency(projectedCategorySpend)}
                             </span>
                           )}
-                          <span>Limit: ${currentCategoryBudget.toFixed(2)}</span>
+                          <span>Limit: {formatCurrency(currentCategoryBudget)}</span>
                         </div>
                       </div>
                     );
@@ -725,10 +726,12 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
                         {/* Spend vs Limit info */}
                         <div className="mt-2 flex items-center justify-between text-[11px]">
                           <span className="font-semibold text-slate-800">
-                            ${spent.toFixed(2)} <span className="text-slate-500 font-normal">/ ${limit.toFixed(2)}</span>
+                            {formatCurrency(spent)} <span className="text-slate-500 font-normal">/ {formatCurrency(limit)}</span>
                           </span>
                           <span className={`font-semibold ${status.textColor}`}>
-                            {remaining >= 0 ? `$${remaining.toFixed(2)} left` : `-$${Math.abs(remaining).toFixed(2)} over`}
+                            {remaining >= 0
+                              ? `${formatCurrency(remaining)} left`
+                              : `-${formatCurrency(Math.abs(remaining))} over`}
                           </span>
                         </div>
                       </div>
@@ -745,7 +748,7 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
                 Monthly Expense List ({items.length} items)
               </h3>
               <span className="text-sm font-black text-brand-700">
-                Total: ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                Total: {formatCurrency(totalAmount)}
               </span>
             </div>
 
@@ -821,7 +824,7 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
                               {item.description || '—'}
                             </td>
                             <td className="py-2 px-3 text-right font-bold text-slate-900 whitespace-nowrap">
-                              ${item.amount.toFixed(2)}
+                              {formatCurrency(item.amount)}
                             </td>
                             <td className="py-2 px-3 text-center">
                               <button

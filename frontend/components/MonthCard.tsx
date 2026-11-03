@@ -2,6 +2,7 @@ import React from 'react';
 import { MonthExpenseData, ExpenseCategory } from '../types';
 import { CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from '../constants';
 import { downloadMonthJsonFile } from '../services/storageService';
+import { formatCurrency } from '../utils/formatCurrency';
 import { Download, Edit3, Trash2, Calendar, TrendingUp, AlertCircle, ShieldAlert } from 'lucide-react';
 
 interface MonthCardProps {
@@ -23,7 +24,18 @@ export const MonthCard: React.FC<MonthCardProps> = ({ data, onEdit, onDelete }) 
   }, {} as Record<string, number>);
 
   const categoryBudgets = data.categoryBudgets || {};
-  const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+
+  // Show every expense category (incl. ₹0 spent), plus any custom ones from items/budgets
+  const allCategoryNames = Array.from(
+    new Set([
+      ...Object.values(ExpenseCategory),
+      ...Object.keys(categoryTotals),
+      ...Object.keys(categoryBudgets),
+    ])
+  );
+  const sortedCategories = allCategoryNames
+    .map((name) => [name, categoryTotals[name] || 0] as [string, number])
+    .sort((a, b) => b[1] - a[1]);
 
   // Overall progress bar color
   const getOverallProgressBarColor = (pct: number) => {
@@ -92,14 +104,14 @@ export const MonthCard: React.FC<MonthCardProps> = ({ data, onEdit, onDelete }) 
             </span>
             {budget > 0 && (
               <span className={`text-xs font-medium ${isOverBudget ? 'text-rose-600 font-semibold' : 'text-slate-500'}`}>
-                Budget: ${budget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                Budget: {formatCurrency(budget)}
               </span>
             )}
           </div>
 
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-slate-900 tracking-tight">
-              ${totalSpend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(totalSpend)}
             </span>
             {budget > 0 && (
               <span className={`inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full border ${
@@ -140,61 +152,51 @@ export const MonthCard: React.FC<MonthCardProps> = ({ data, onEdit, onDelete }) 
             )}
           </div>
 
-          {sortedCategories.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">No expense items added yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {sortedCategories.slice(0, 4).map(([catName, amount]) => {
-                const colorDef = CATEGORY_COLORS[catName] || DEFAULT_CATEGORY_COLOR;
-                const catBudget = categoryBudgets[catName];
-                const hasBudget = catBudget !== undefined && catBudget > 0;
-                const catPct = hasBudget ? Math.round((amount / catBudget) * 100) : 0;
-                const statusColor = getCategoryProgressColor(catPct);
+          <div className="space-y-3">
+            {sortedCategories.map(([catName, amount]) => {
+              const colorDef = CATEGORY_COLORS[catName] || DEFAULT_CATEGORY_COLOR;
+              const catBudget = categoryBudgets[catName];
+              const hasBudget = catBudget !== undefined && catBudget > 0;
+              const catPct = hasBudget ? Math.round((amount / catBudget) * 100) : 0;
+              const statusColor = getCategoryProgressColor(catPct);
 
-                return (
-                  <div key={catName} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="flex items-center space-x-1.5 truncate max-w-[60%]">
-                        <span className={`w-2 h-2 rounded-full shrink-0`} style={{ backgroundColor: colorDef.hex }} />
-                        <span className="font-medium text-slate-700 truncate">{catName}</span>
-                      </span>
+              return (
+                <div key={catName} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center space-x-1.5 truncate max-w-[60%]">
+                      <span className={`w-2 h-2 rounded-full shrink-0`} style={{ backgroundColor: colorDef.hex }} />
+                      <span className="font-medium text-slate-700 truncate">{catName}</span>
+                    </span>
 
-                      <div className="flex items-center space-x-1 font-semibold text-slate-900">
-                        <span>${amount.toFixed(2)}</span>
-                        {hasBudget ? (
-                          <span className={`text-[10px] font-bold ${
-                            catPct > 100 ? 'text-rose-600' : catPct >= 80 ? 'text-amber-600' : 'text-slate-400'
-                          }`}>
-                            / ${catBudget} ({catPct}%)
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 font-normal text-[11px]">
-                            ({totalSpend > 0 ? Math.round((amount / totalSpend) * 100) : 0}%)
-                          </span>
-                        )}
-                      </div>
+                    <div className="flex items-center space-x-1 font-semibold text-slate-900">
+                      <span>{formatCurrency(amount)}</span>
+                      {hasBudget ? (
+                        <span className={`text-[10px] font-bold ${
+                          catPct > 100 ? 'text-rose-600' : catPct >= 80 ? 'text-amber-600' : 'text-slate-400'
+                        }`}>
+                          / {formatCurrency(catBudget)} ({catPct}%)
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-normal text-[11px]">
+                          ({totalSpend > 0 ? Math.round((amount / totalSpend) * 100) : 0}%)
+                        </span>
+                      )}
                     </div>
-
-                    {/* Category progress bar when limit is set */}
-                    {hasBudget && (
-                      <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
-                        <div
-                          className={`h-1 rounded-full transition-all duration-300 ${statusColor.split(' ')[0]}`}
-                          style={{ width: `${Math.min(catPct, 100)}%` }}
-                        />
-                      </div>
-                    )}
                   </div>
-                );
-              })}
 
-              {sortedCategories.length > 4 && (
-                <p className="text-xs text-slate-400 pt-1">
-                  + {sortedCategories.length - 4} more categories
-                </p>
-              )}
-            </div>
-          )}
+                  {/* Category progress bar when limit is set */}
+                  {hasBudget && (
+                    <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
+                      <div
+                        className={`h-1 rounded-full transition-all duration-300 ${statusColor.split(' ')[0]}`}
+                        style={{ width: `${Math.min(catPct, 100)}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Footer Note or JSON filename tag */}

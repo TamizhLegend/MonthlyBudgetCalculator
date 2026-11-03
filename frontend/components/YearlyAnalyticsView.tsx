@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MonthExpenseData, ExpenseCategory } from '../types';
 import { MONTH_NAMES, CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from '../constants';
+import { formatCurrency } from '../utils/formatCurrency';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend, Sector
@@ -31,7 +32,7 @@ const renderActiveShape = (props: any) => {
         {payload.name}
       </text>
       <text x={cx} y={cy + 12} dy={8} textAnchor="middle" fill="#64748b" className="text-xs font-semibold">
-        ${value.toLocaleString(undefined, { minimumFractionDigits: 2 })} ({(percent * 100).toFixed(1)}%)
+        {formatCurrency(value)} ({(percent * 100).toFixed(1)}%)
       </text>
       <Sector
         cx={cx}
@@ -187,7 +188,7 @@ export const YearlyAnalyticsView: React.FC<YearlyAnalyticsViewProps> = ({
           <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2 font-bold text-slate-800">
             <span>{monthRow?.fullName} {selectedYear}</span>
             <span className="text-brand-600 font-black">
-              ${monthTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(monthTotal)}
             </span>
           </div>
 
@@ -204,7 +205,7 @@ export const YearlyAnalyticsView: React.FC<YearlyAnalyticsViewProps> = ({
                       <span className="text-slate-600 truncate">{entry.name}</span>
                     </span>
                     <span className="font-semibold text-slate-900 shrink-0">
-                      ${entry.value.toFixed(2)} <span className="text-slate-400 font-normal">({pct}%)</span>
+                      {formatCurrency(entry.value)} <span className="text-slate-400 font-normal">({pct}%)</span>
                     </span>
                   </div>
                 );
@@ -272,7 +273,7 @@ export const YearlyAnalyticsView: React.FC<YearlyAnalyticsViewProps> = ({
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900 mt-2">
-            ${totalYearSpent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {formatCurrency(totalYearSpent)}
           </p>
           <span className="text-xs text-slate-500 mt-1 inline-block">
             Across {activeMonthCount} recorded month{activeMonthCount !== 1 ? 's' : ''}
@@ -288,7 +289,7 @@ export const YearlyAnalyticsView: React.FC<YearlyAnalyticsViewProps> = ({
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900 mt-2">
-            ${averageMonthlySpend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {formatCurrency(averageMonthlySpend)}
           </p>
           <span className="text-xs text-slate-500 mt-1 inline-block">
             Per active month in {selectedYear}
@@ -307,7 +308,7 @@ export const YearlyAnalyticsView: React.FC<YearlyAnalyticsViewProps> = ({
             {topCategory ? topCategory.name : 'N/A'}
           </p>
           <span className="text-xs text-purple-700 font-semibold mt-1 inline-block">
-            {topCategory ? `$${topCategory.value.toFixed(2)} (${totalYearSpent > 0 ? Math.round((topCategory.value / totalYearSpent) * 100) : 0}%)` : 'No data'}
+            {topCategory ? `${formatCurrency(topCategory.value)} (${totalYearSpent > 0 ? Math.round((topCategory.value / totalYearSpent) * 100) : 0}%)` : 'No data'}
           </span>
         </div>
 
@@ -323,7 +324,7 @@ export const YearlyAnalyticsView: React.FC<YearlyAnalyticsViewProps> = ({
             {highestMonth ? `${highestMonth.monthName}` : 'N/A'}
           </p>
           <span className="text-xs text-amber-700 font-semibold mt-1 inline-block">
-            {highestMonth ? `$${highestMonthTotal.toFixed(2)}` : 'No records'}
+            {highestMonth ? formatCurrency(highestMonthTotal) : 'No records'}
           </span>
         </div>
       </div>
@@ -402,7 +403,7 @@ export const YearlyAnalyticsView: React.FC<YearlyAnalyticsViewProps> = ({
                 <XAxis dataKey="monthName" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} />
                 <YAxis
                   tick={{ fill: '#64748b', fontSize: 12 }}
-                  tickFormatter={(val) => `$${val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}`}
+                  tickFormatter={(val) => formatCurrency(val, { compact: true })}
                 />
                 <Tooltip content={<CustomStackedTooltip />} />
                 
@@ -446,7 +447,7 @@ export const YearlyAnalyticsView: React.FC<YearlyAnalyticsViewProps> = ({
                   Category Spending Distribution
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Hover or tap slices to inspect share of total ${totalYearSpent.toLocaleString()}
+                  Hover or tap slices to inspect share of total {formatCurrency(totalYearSpent, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </p>
               </div>
             </div>
@@ -524,7 +525,7 @@ export const YearlyAnalyticsView: React.FC<YearlyAnalyticsViewProps> = ({
                       <span className="truncate">{item.name}</span>
                     </span>
                     <span className="font-semibold text-slate-900 shrink-0">
-                      ${item.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      {formatCurrency(item.value)}
                       <span className="text-slate-400 font-normal ml-1.5">({pct}%)</span>
                     </span>
                   </div>
@@ -602,7 +603,7 @@ export const YearlyAnalyticsView: React.FC<YearlyAnalyticsViewProps> = ({
                         )}
                       </td>
                       <td className="py-3 px-5 font-bold text-slate-900">
-                        ${cat.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatCurrency(cat.value)}
                       </td>
                       <td className="py-3 px-5">
                         <div className="flex items-center space-x-2">
@@ -616,7 +617,7 @@ export const YearlyAnalyticsView: React.FC<YearlyAnalyticsViewProps> = ({
                         </div>
                       </td>
                       <td className="py-3 px-5 text-slate-600 font-medium">
-                        ${catMonthlyAvg.toFixed(2)} / mo
+                        {formatCurrency(catMonthlyAvg)} / mo
                       </td>
                       <td className="py-3 px-5 text-right">
                         <button
