@@ -9,7 +9,7 @@ import {
 
 interface RecurringManagerViewProps {
   recurringExpenses: RecurringExpense[];
-  onSaveRecurring: (updated: RecurringExpense[]) => void;
+  onSaveRecurring: (updated: RecurringExpense[]) => void | Promise<void>;
   onOpenCreateMonthWithAutofill?: () => void;
 }
 
@@ -38,11 +38,21 @@ export const RecurringManagerView: React.FC<RecurringManagerViewProps> = ({
     setTimeout(() => setSuccessToast(''), 3000);
   };
 
+  const persistRecurring = async (updated: RecurringExpense[], successMsg?: string) => {
+    try {
+      await onSaveRecurring(updated);
+      if (successMsg) showNotification(successMsg);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save recurring expenses to database.';
+      setErrorMsg(message);
+    }
+  };
+
   const handleToggleActive = (id: string) => {
     const updated = recurringExpenses.map((it) =>
       it.id === id ? { ...it, isActive: !it.isActive } : it
     );
-    onSaveRecurring(updated);
+    void persistRecurring(updated);
   };
 
   const handleDeleteItem = (id: string) => {
@@ -50,8 +60,7 @@ export const RecurringManagerView: React.FC<RecurringManagerViewProps> = ({
     if (!target) return;
     if (window.confirm(`Remove "${target.name}" from recurring expenses?`)) {
       const updated = recurringExpenses.filter((it) => it.id !== id);
-      onSaveRecurring(updated);
-      showNotification(`Removed "${target.name}".`);
+      void persistRecurring(updated, `Removed "${target.name}".`);
       if (editingId === id) resetForm();
     }
   };
@@ -83,7 +92,7 @@ export const RecurringManagerView: React.FC<RecurringManagerViewProps> = ({
     setErrorMsg('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -115,8 +124,7 @@ export const RecurringManagerView: React.FC<RecurringManagerViewProps> = ({
         }
         return it;
       });
-      onSaveRecurring(updated);
-      showNotification(`Updated "${name.trim()}" successfully.`);
+      await persistRecurring(updated, `Updated "${name.trim()}" successfully.`);
     } else {
       const newItem: RecurringExpense = {
         id: 'rec-' + Date.now() + '-' + Math.random().toString(36).substring(2, 5),
@@ -127,8 +135,7 @@ export const RecurringManagerView: React.FC<RecurringManagerViewProps> = ({
         description: description.trim(),
         isActive: true,
       };
-      onSaveRecurring([newItem, ...recurringExpenses]);
-      showNotification(`Added "${newItem.name}" to recurring expenses.`);
+      await persistRecurring([newItem, ...recurringExpenses], `Added "${newItem.name}" to recurring expenses.`);
     }
 
     resetForm();

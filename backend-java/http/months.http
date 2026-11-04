@@ -1,0 +1,92 @@
+### Health
+GET http://localhost:8080/api/v1/health
+
+### List months
+GET http://localhost:8080/api/v1/months
+
+### Get one month
+GET http://localhost:8080/api/v1/months/2025-01
+
+### Create month
+POST http://localhost:8080/api/v1/months
+Content-Type: application/json
+
+{
+  "id": "2025-01",
+  "year": 2025,
+  "month": 1,
+  "monthName": "January",
+  "budget": 5000,
+  "categoryBudgets": {
+    "Food & Groceries": 500,
+    "Utility & Bills": 1700
+  },
+  "items": [
+    {
+      "id": "exp-1",
+      "date": "2025-01-05",
+      "category": "Food & Groceries",
+      "amount": 120.5,
+      "description": "Weekly groceries"
+    }
+  ],
+  "notes": "Created via API"
+}
+
+### Edit month anytime (upsert)
+PUT http://localhost:8080/api/v1/months/2025-01
+Content-Type: application/json
+
+{
+  "id": "2025-01",
+  "year": 2025,
+  "month": 1,
+  "monthName": "January",
+  "budget": 5200,
+  "categoryBudgets": {
+    "Food & Groceries": 550,
+    "Utility & Bills": 1700
+  },
+  "items": [
+    {
+      "id": "exp-1",
+      "date": "2025-01-05",
+      "category": "Food & Groceries",
+      "amount": 120.5,
+      "description": "Weekly groceries"
+    },
+    {
+      "id": "exp-2",
+      "date": "2025-01-12",
+      "category": "Utility & Bills",
+      "amount": 890,
+      "description": "Electricity"
+    }
+  ],
+  "notes": "Updated amounts"
+}
+
+### Delete month
+DELETE http://localhost:8080/api/v1/months/2025-01
+
+### List category limits
+GET http://localhost:8080/api/v1/category-limits
+
+### Replace category limits
+PUT http://localhost:8080/api/v1/category-limits
+Content-Type: application/json
+
+[
+  {
+    "id": "lim-1",
+    "category": "Food & Groceries",
+    "budgetLimit": 500,
+    "isActive": true
+  },
+  {
+    "id": "lim-2",
+    "category": "Utility & Bills",
+    "budgetLimit": 1700,
+    "isActive": true
+  }
+]

@@ -1,6 +1,7 @@
 import React from 'react';
+import { UserButton } from '@neondatabase/neon-js/auth/react/ui';
 import { ViewTab } from '../types';
-import { Calendar, BarChart3, FileJson, PlusCircle, WalletCards, RefreshCw, GitCompare } from 'lucide-react';
+import { Calendar, BarChart3, FileJson, PlusCircle, WalletCards, RefreshCw, GitCompare, Sliders } from 'lucide-react';
 
 interface NavbarProps {
   currentTab: ViewTab;
@@ -10,6 +11,7 @@ interface NavbarProps {
   availableYears: number[];
   onAddNewMonth: () => void;
   activeRecurringCount: number;
+  activeCategoryLimitsCount: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,6 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   availableYears,
   onAddNewMonth,
   activeRecurringCount,
+  activeCategoryLimitsCount,
 }) => {
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
@@ -36,7 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Yearly Expense Sheet
               </h1>
               <p className="text-xs text-slate-500 font-medium mt-1">
-                Monthly categorized tracking & JSON records
+                Connected to Spring Boot API · PostgreSQL
               </p>
             </div>
           </div>
@@ -118,6 +121,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               <button
+                onClick={() => onTabChange('limits')}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
+                  currentTab === 'limits'
+                    ? 'bg-white text-brand-700 shadow-xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Sliders className="h-4 w-4 text-amber-600" />
+                <span>Limits</span>
+                {activeCategoryLimitsCount > 0 && (
+                  <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.2 rounded-full border border-amber-200">
+                    {activeCategoryLimitsCount}
+                  </span>
+                )}
+              </button>
+
+              <button
                 onClick={() => onTabChange('json-hub')}
                 className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   currentTab === 'json-hub'
@@ -138,6 +158,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               <PlusCircle className="h-4 w-4" />
               <span>Add Month</span>
             </button>
+
+            <UserButton />
           </div>
 
         </div>

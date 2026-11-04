@@ -9,8 +9,8 @@ import {
 
 interface JsonHubViewProps {
   monthsData: MonthExpenseData[];
-  onImportData: (imported: MonthExpenseData) => void;
-  onImportAllBackup: (importedAll: MonthExpenseData[]) => void;
+  onImportData: (imported: MonthExpenseData) => void | Promise<void>;
+  onImportAllBackup: (importedAll: MonthExpenseData[]) => void | Promise<void>;
 }
 
 export const JsonHubView: React.FC<JsonHubViewProps> = ({
@@ -40,24 +40,23 @@ export const JsonHubView: React.FC<JsonHubViewProps> = ({
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const parsed = JSON.parse(event.target?.result as string);
 
         // Check if single month format
         if (parsed && parsed.monthName && parsed.year && Array.isArray(parsed.items)) {
-          onImportData(parsed as MonthExpenseData);
+          await onImportData(parsed as MonthExpenseData);
           setFeedback({
             type: 'success',
-            message: `Successfully loaded ${parsed.monthName}_${parsed.year}.json!`,
+            message: `Saved ${parsed.monthName}_${parsed.year}.json to the database!`,
           });
           setSelectedMonthId(parsed.id || `${parsed.year}-${String(parsed.month).padStart(2, '0')}`);
         } else if (Array.isArray(parsed)) {
-          // Backup list
-          onImportAllBackup(parsed);
+          await onImportAllBackup(parsed);
           setFeedback({
             type: 'success',
-            message: `Successfully imported backup with ${parsed.length} months!`,
+            message: `Imported backup with ${parsed.length} months into the database!`,
           });
         } else {
           setFeedback({
@@ -68,7 +67,7 @@ export const JsonHubView: React.FC<JsonHubViewProps> = ({
       } catch (err) {
         setFeedback({
           type: 'error',
-          message: 'Error reading JSON file. Please ensure the file contains valid JSON.',
+          message: err instanceof Error ? err.message : 'Error importing into the database.',
         });
       }
     };

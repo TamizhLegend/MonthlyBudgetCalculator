@@ -39,6 +39,14 @@ export interface RecurringExpense {
   isActive: boolean;
 }
 
+/** Global default budget ceiling for a category — applied to monthly sheets on demand. */
+export interface CategoryLimit {
+  id: string;
+  category: ExpenseCategory | string;
+  budgetLimit: number;
+  isActive: boolean;
+}
+
 export interface CategorySummary {
   category: string;
   total: number;
@@ -48,4 +56,4 @@ export interface CategorySummary {
   budgetLimit?: number;
 }
 
-export type ViewTab = 'months' | 'yearly' | 'compare' | 'recurring' | 'json-hub';
+export type ViewTab = 'months' | 'yearly' | 'compare' | 'recurring' | 'limits' | 'json-hub';

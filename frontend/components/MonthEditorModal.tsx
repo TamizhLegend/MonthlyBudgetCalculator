@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MonthExpenseData, ExpenseItem, ExpenseCategory, RecurringExpense } from '../types';
+import { MonthExpenseData, ExpenseItem, ExpenseCategory, RecurringExpense, CategoryLimit } from '../types';
 import { MONTH_NAMES, CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from '../constants';
 import { downloadMonthJsonFile } from '../services/storageService';
 import { formatCurrency } from '../utils/formatCurrency';
@@ -14,10 +14,12 @@ interface MonthEditorModalProps {
   selectedYear: number;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (savedData: MonthExpenseData) => void;
+  onSave: (savedData: MonthExpenseData) => void | Promise<void>;
   existingMonthIds: string[];
   recurringExpenses?: RecurringExpense[];
+  categoryLimits?: CategoryLimit[];
   onOpenRecurringManager?: () => void;
+  onOpenCategoryLimitsManager?: () => void;
 }
 
 export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
@@ -28,7 +30,9 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
   onSave,
   existingMonthIds,
   recurringExpenses = [],
+  categoryLimits = [],
   onOpenRecurringManager,
+  onOpenCategoryLimitsManager,
 }) => {
   if (!isOpen) return null;
 
@@ -60,6 +64,7 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
   const [newItemDesc, setNewItemDesc] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [autofillNotice, setAutofillNotice] = useState<string>('');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   // Sorting state for table
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'category'>('date');
@@ -102,6 +107,12 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
   const activeRecurringItems = useMemo(
     () => recurringExpenses.filter((r) => r.isActive),
     [recurringExpenses]
+  );
+
+  // Active category limits available to apply onto this month
+  const activeCategoryLimits = useMemo(
+    () => categoryLimits.filter((l) => l.isActive && Number(l.budgetLimit) > 0),
+    [categoryLimits]
   );
 
   const handleCategoryBudgetChange = (catName: string, valueStr: string) => {
@@ -167,6 +178,37 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
     }
   };
 
+  /**
+   * Apply active global category limits into this month's categoryBudgets.
+   * Fills missing categories only (does not overwrite existing month-specific caps).
+   */
+  const handleApplyCategoryLimits = () => {
+    if (activeCategoryLimits.length === 0) {
+      setErrorMsg('No active category limits found. Configure them in the Limits tab first.');
+      return;
+    }
+
+    const next = { ...categoryBudgets };
+    let addedCount = 0;
+    activeCategoryLimits.forEach((lim) => {
+      if (next[lim.category] === undefined || next[lim.category] <= 0) {
+        next[lim.category] = Number(lim.budgetLimit);
+        addedCount++;
+      }
+    });
+
+    if (addedCount > 0) {
+      setCategoryBudgets(next);
+      setShowBudgetConfig(true);
+      setAutofillNotice(`Applied ${addedCount} category limit${addedCount !== 1 ? 's' : ''} to this month.`);
+      setTimeout(() => setAutofillNotice(''), 4000);
+    } else {
+      setShowBudgetConfig(true);
+      setAutofillNotice('All active category limits are already set on this month.');
+      setTimeout(() => setAutofillNotice(''), 3000);
+    }
+  };
+
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -203,14 +245,15 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleSaveMonth = () => {
-    setErrorMsg('');
+  const buildSavedMonth = (): MonthExpenseData | null => {
     const monthId = `${year}-${String(month).padStart(2, '0')}`;
 
     // If new creation, check for collision
     if (!isEditing && existingMonthIds.includes(monthId)) {
-      setErrorMsg(`A sheet for ${monthName} ${year} already exists. Please choose a different month or edit the existing one.`);
-      return;
+      setErrorMsg(
+        `A sheet for ${monthName} ${year} already exists. Please choose a different month or edit the existing one.`
+      );
+      return null;
     }
 
     const cleanCategoryBudgets: Record<string, number> = {};
@@ -218,7 +261,7 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
       if (v > 0) cleanCategoryBudgets[k] = v;
     });
 
-    const savedMonth: MonthExpenseData = {
+    return {
       id: monthId,
       year: Number(year),
       month: Number(month),
@@ -229,32 +272,41 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
       items: items,
       lastUpdated: new Date().toISOString(),
     };
-
-    onSave(savedMonth);
-    onClose();
   };
 
-  const handleSaveAndDownloadJson = () => {
-    const monthId = `${year}-${String(month).padStart(2, '0')}`;
-    const cleanCategoryBudgets: Record<string, number> = {};
-    Object.entries(categoryBudgets).forEach(([k, v]) => {
-      if (v > 0) cleanCategoryBudgets[k] = v;
-    });
+  const handleSaveMonth = async () => {
+    setErrorMsg('');
+    const savedMonth = buildSavedMonth();
+    if (!savedMonth) return;
 
-    const savedMonth: MonthExpenseData = {
-      id: monthId,
-      year: Number(year),
-      month: Number(month),
-      monthName,
-      budget: budget ? parseFloat(budget) : undefined,
-      categoryBudgets: Object.keys(cleanCategoryBudgets).length > 0 ? cleanCategoryBudgets : undefined,
-      notes: notes.trim(),
-      items: items,
-      lastUpdated: new Date().toISOString(),
-    };
-    downloadMonthJsonFile(savedMonth);
-    onSave(savedMonth);
-    onClose();
+    setIsSaving(true);
+    try {
+      await onSave(savedMonth);
+      onClose();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save month to the backend database.';
+      setErrorMsg(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveAndDownloadJson = async () => {
+    setErrorMsg('');
+    const savedMonth = buildSavedMonth();
+    if (!savedMonth) return;
+
+    setIsSaving(true);
+    try {
+      await onSave(savedMonth);
+      downloadMonthJsonFile(savedMonth);
+      onClose();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save month to the backend database.';
+      setErrorMsg(message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Sorted items
@@ -415,40 +467,65 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
             </div>
 
             {/* Category Budget Limits Toggle & Autofill Button */}
-            <div className="pt-2 border-t border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => setShowBudgetConfig(!showBudgetConfig)}
-                className="text-xs font-bold text-brand-700 hover:text-brand-900 flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-brand-50 hover:bg-brand-100 transition-colors border border-brand-200"
-              >
-                <Sliders className="h-3.5 w-3.5" />
-                <span>
-                  {showBudgetConfig ? 'Hide Category Budget Limits' : 'Configure Category Budget Limits'}
-                </span>
-                <span className="text-[10px] bg-brand-200 text-brand-800 px-1.5 py-0.2 rounded-full ml-1">
-                  {Object.keys(categoryBudgets).length} set
-                </span>
-              </button>
-
-              {/* Recurring Autofill Trigger */}
-              <div className="flex items-center space-x-2">
+            <div className="pt-2 border-t border-slate-200/80 flex flex-col gap-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <button
                   type="button"
-                  onClick={handleAutofillRecurring}
-                  className="flex items-center space-x-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg shadow-xs transition-colors"
-                  title="Insert fixed monthly overheads like rent and subscriptions"
+                  onClick={() => setShowBudgetConfig(!showBudgetConfig)}
+                  className="text-xs font-bold text-brand-700 hover:text-brand-900 flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-brand-50 hover:bg-brand-100 transition-colors border border-brand-200"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  <span>Autofill Recurring ({activeRecurringItems.length})</span>
+                  <Sliders className="h-3.5 w-3.5" />
+                  <span>
+                    {showBudgetConfig ? 'Hide Category Budget Limits' : 'Configure Category Budget Limits'}
+                  </span>
+                  <span className="text-[10px] bg-brand-200 text-brand-800 px-1.5 py-0.2 rounded-full ml-1">
+                    {Object.keys(categoryBudgets).length} set
+                  </span>
                 </button>
 
-                {onOpenRecurringManager && (
+                {/* Recurring Autofill Trigger */}
+                <div className="flex items-center space-x-2">
                   <button
                     type="button"
-                    onClick={onOpenRecurringManager}
-                    className="text-[11px] text-slate-500 hover:text-brand-600 underline font-medium"
+                    onClick={handleAutofillRecurring}
+                    className="flex items-center space-x-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg shadow-xs transition-colors"
+                    title="Insert fixed monthly overheads like rent and subscriptions"
                   >
-                    Manage
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    <span>Autofill Recurring ({activeRecurringItems.length})</span>
+                  </button>
+
+                  {onOpenRecurringManager && (
+                    <button
+                      type="button"
+                      onClick={onOpenRecurringManager}
+                      className="text-[11px] text-slate-500 hover:text-brand-600 underline font-medium"
+                    >
+                      Manage
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Category Limits Apply Trigger */}
+              <div className="flex items-center space-x-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleApplyCategoryLimits}
+                  className="flex items-center space-x-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shadow-xs transition-colors"
+                  title="Apply saved default category budget ceilings to this month"
+                >
+                  <Sliders className="h-3.5 w-3.5" />
+                  <span>Apply Limits ({activeCategoryLimits.length})</span>
+                </button>
+
+                {onOpenCategoryLimitsManager && (
+                  <button
+                    type="button"
+                    onClick={onOpenCategoryLimitsManager}
+                    className="text-[11px] text-slate-500 hover:text-amber-700 underline font-medium"
+                  >
+                    Manage Limits
                   </button>
                 )}
               </div>
@@ -865,14 +942,16 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
         {/* Modal Footer */}
         <div className="p-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-slate-500">
-            Per-category budgets and total limits are saved directly inside <span className="font-mono font-semibold text-slate-800">{monthName}_{year}.json</span>.
+            Saves to database as month <span className="font-mono font-semibold text-slate-800">{year}-{String(month).padStart(2, '0')}</span>
+            {' '}(create if new, update if exists).
           </div>
 
           <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-100 transition-colors"
+              disabled={isSaving}
+              className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-100 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -880,20 +959,22 @@ export const MonthEditorModal: React.FC<MonthEditorModalProps> = ({
             <button
               type="button"
               onClick={handleSaveAndDownloadJson}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 shadow-xs"
-              title="Save & Download Month_Year.json"
+              disabled={isSaving}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 shadow-xs disabled:opacity-50"
+              title="Save to database & Download Month_Year.json"
             >
               <Download className="h-4 w-4" />
-              <span>Save & Download JSON</span>
+              <span>{isSaving ? 'Saving…' : 'Save & Download JSON'}</span>
             </button>
 
             <button
               type="button"
               onClick={handleSaveMonth}
-              className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 shadow-sm"
+              disabled={isSaving}
+              className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 shadow-sm disabled:opacity-50"
             >
               <CheckCircle2 className="h-4 w-4" />
-              <span>Save Changes</span>
+              <span>{isSaving ? 'Saving…' : 'Save Changes'}</span>
             </button>
           </div>
         </div>

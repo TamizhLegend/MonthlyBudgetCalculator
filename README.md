@@ -1,37 +1,55 @@
 # Monthly Budget Calculator
 
-A React app for tracking monthly expenses and yearly budgets. Data is stored in the browser via `localStorage` — no backend or cloud APIs required.
-
-## Prerequisites
-
-* **Node.js and npm** — install from [nodejs.org](https://nodejs.org/) if you don't already have them.
+React frontend + Spring Boot API backed by **Neon PostgreSQL**. The UI performs all CRUD through the backend.
 
 ## Project Structure
 
-* `frontend/` — Vite + React application
+| Path | Description |
+| --- | --- |
+| `frontend/` | Vite + React UI (API client) |
+| `backend-java/` | Spring Boot REST API → Postgres |
 
-## Installation and Running
+## Run both
 
-From the project root:
+**Terminal 1 — backend**
+
+```bash
+cd backend-java
+./gradlew bootRun
+```
+
+| URL | Purpose |
+| --- | --- |
+| http://localhost:8080/api/v1/health | Health |
+| http://localhost:8080/swagger-ui/index.html | **Swagger UI** (also `/docs`) |
+| http://localhost:8080/v3/api-docs | OpenAPI JSON |
+
+**Terminal 2 — frontend**
 
 ```bash
 npm install --prefix frontend
 npm run dev
 ```
 
-Or from the `frontend/` directory:
+Open the Vite URL (http://localhost:5173 or http://localhost:5174).
 
-```bash
-npm install
-npm run dev
-```
+### How the frontend connects
 
-Then open the local URL printed by Vite (typically [http://localhost:5173](http://localhost:5173)).
+- Dev requests go to `/api/v1/...`
+- `frontend/vite.config.ts` proxies `/api` → `http://localhost:8080`
+- Optional env: `frontend/.env.development` / `.env.example` (`VITE_BACKEND_ORIGIN`, `VITE_API_BASE_URL`)
 
-## Scripts
+## API used by the UI
 
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Start the Vite development server |
-| `npm run build` | Build the production bundle |
-| `npm run preview` | Preview the production build |
+| Method | Path | UI action |
+| --- | --- | --- |
+| `GET` | `/api/v1/health` | Boot / connectivity |
+| `GET` | `/api/v1/months` | Load all months |
+| `GET` | `/api/v1/months/{id}` | Edit / Manage Details |
+| `PUT` | `/api/v1/months/{id}` | Save / import month |
+| `DELETE` | `/api/v1/months/{id}` | Delete month |
+| `GET`/`PUT` | `/api/v1/recurring` | Recurring manager |
+
+## Database tables
+
+`months`, `expense_items`, `category_budgets`, `recurring_expenses`

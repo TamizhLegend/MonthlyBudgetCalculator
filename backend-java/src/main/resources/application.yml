@@ -1,0 +1,60 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: monthly-budget-api
+  datasource:
+    # Neon Postgres (pooled connection string)
+    url: jdbc:postgresql://ep-cool-river-bed2ay6c-pooler.c-9.us-east-2.aws.neon.tech:5432/neondb?sslmode=require&prepareThreshold=0
+    username: neondb_owner
+    password: npg_sqQR2alwYy9i
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: true
+    show-sql: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:5174}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    # Official UI path; also available via /docs and /swagger redirects
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    url: /v3/api-docs
+    operations-sorter: method
+    tags-sorter: alpha
+    try-it-out-enabled: true
+    filter: true
+    display-request-duration: true
+    doc-expansion: list
+    use-root-path: false
+  show-actuator: false
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
+  packages-to-scan: com.monthlybudget.controller
+
+
+
+logging:
+  level:
+    com.monthlybudget: INFO
+    org.hibernate.SQL: WARN

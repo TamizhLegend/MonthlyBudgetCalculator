@@ -1,0 +1,24 @@
+# Env / secrets
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# OS / IDE
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# Local toolchains
+.tools/
+
+# Java / Gradle
+backend-java/target/
+backend-java/.gradle/
+backend-java/build/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/node_modules/
