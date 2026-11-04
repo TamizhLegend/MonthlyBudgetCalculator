@@ -18,6 +18,9 @@ public class OpenApiConfig {
     @Value("${server.port:8080}")
     private int serverPort;
 
+    @Value("${app.public-api-url:https://monthlybudgetcalculator.onrender.com}")
+    private String publicApiUrl;
+
     @Bean
     public OpenAPI monthlyBudgetOpenApi() {
         return new OpenAPI()
@@ -28,18 +31,22 @@ public class OpenApiConfig {
                                 
                                 **Storage:** Neon PostgreSQL
                                 
-                                **Frontend:** Vite proxies `/api` → this server.
+                                **Auth:** UI login is Neon Auth (frontend only). This API does not
+                                validate JWTs yet — protect with CORS / network controls, or add Spring Security later.
                                 
                                 Open Swagger at `/swagger-ui/index.html` (or `/docs`).
                                 """)
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("Monthly Budget Calculator")
-                                .url("http://localhost:5174")))
+                                .url(publicApiUrl)))
                 .externalDocs(new ExternalDocumentation()
-                        .description("React frontend")
-                        .url("http://localhost:5174"))
+                        .description("Deployed API")
+                        .url(publicApiUrl))
                 .servers(List.of(
+                        new Server()
+                                .url(publicApiUrl)
+                                .description("Render production API"),
                         new Server()
                                 .url("http://localhost:" + serverPort)
                                 .description("Local Spring Boot API")

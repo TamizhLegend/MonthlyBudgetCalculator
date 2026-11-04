@@ -4,7 +4,12 @@
  * Dev (Vite): leave VITE_API_BASE_URL unset so requests use `/api/v1`
  * and vite.config.ts proxies them to http://localhost:8080.
  *
- * Direct (no proxy): set VITE_API_BASE_URL=http://localhost:8080/api/v1
+ * Production (Vercel): .env.production sets
+ *   VITE_API_BASE_URL=https://monthlybudgetcalculator.onrender.com/api/v1
+ *   VITE_BACKEND_ORIGIN=https://monthlybudgetcalculator.onrender.com
+ *
+ * Auth note: Neon Auth only gates the React UI. API fetch calls do not send
+ * a JWT today — the Spring Boot API is open CORS-protected, not token-protected.
  */
 const trimSlash = (value: string) => value.replace(/\/+$/, '');
 

@@ -10,6 +10,8 @@ REST API for the React Yearly Expense Sheet app. Data is stored in **Neon Postgr
 
 ## Deploy on Render (Docker)
 
+Production API: **https://monthlybudgetcalculator.onrender.com**
+
 1. Create a **Web Service** → connect this repo.
 2. Set **Root Directory** to `backend-java`.
 3. **Runtime**: Docker (uses `Dockerfile`).
@@ -20,11 +22,24 @@ REST API for the React Yearly Expense Sheet app. Data is stored in **Neon Postgr
 | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://...neon.tech:5432/neondb?sslmode=require&prepareThreshold=0` |
 | `SPRING_DATASOURCE_USERNAME` | Neon role |
 | `SPRING_DATASOURCE_PASSWORD` | Neon password |
-| `CORS_ALLOWED_ORIGINS` | `https://your-frontend.netlify.app,http://localhost:5173` |
+| `CORS_ALLOWED_ORIGINS` | `https://your-app.vercel.app,https://*.vercel.app,http://localhost:5173` |
 
 Render sets `PORT` automatically; the app listens on `${PORT}`.
 
 Health check path: `/api/v1/health`
+
+### Auth model (important)
+
+- **Frontend (Vercel):** Neon Auth signs users in (`SignedIn` / `/auth/sign-in`). That only unlocks the React UI.
+- **Backend (Render):** Has **no JWT / Spring Security**. API calls from `monthApi.ts` do **not** send an `Authorization` header. Anyone who can reach the URL can call the API; CORS limits *browser* access from unknown sites.
+
+To fully protect the API later, verify Neon JWTs in Spring Security and send `Authorization: Bearer <token>` from the frontend.
+
+### Frontend (Vercel)
+
+- Project **Root Directory**: `frontend`
+- Build uses `frontend/.env.production` → API base `https://monthlybudgetcalculator.onrender.com/api/v1`
+- In **Neon Console → Auth**, add your Vercel domain as a trusted / redirect URL (e.g. `https://your-app.vercel.app`)
 
 Local image smoke test:
 

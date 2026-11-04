@@ -17,7 +17,8 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         String[] origins = corsProperties.allowedOrigins().split("\\s*,\\s*");
         registry.addMapping("/api/**")
-                .allowedOrigins(origins)
+                // Patterns allow https://*.vercel.app (exact allowedOrigins cannot).
+                .allowedOriginPatterns(origins)
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
