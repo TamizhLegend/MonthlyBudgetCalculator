@@ -8,6 +8,31 @@ REST API for the React Yearly Expense Sheet app. Data is stored in **Neon Postgr
 ./gradlew bootRun
 ```
 
+## Deploy on Render (Docker)
+
+1. Create a **Web Service** → connect this repo.
+2. Set **Root Directory** to `backend-java`.
+3. **Runtime**: Docker (uses `Dockerfile`).
+4. Environment variables (recommended):
+
+| Variable | Example |
+| --- | --- |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://...neon.tech:5432/neondb?sslmode=require&prepareThreshold=0` |
+| `SPRING_DATASOURCE_USERNAME` | Neon role |
+| `SPRING_DATASOURCE_PASSWORD` | Neon password |
+| `CORS_ALLOWED_ORIGINS` | `https://your-frontend.netlify.app,http://localhost:5173` |
+
+Render sets `PORT` automatically; the app listens on `${PORT}`.
+
+Health check path: `/api/v1/health`
+
+Local image smoke test:
+
+```bash
+docker build -t budget-api .
+docker run --rm -p 8080:8080 -e PORT=8080 budget-api
+```
+
 | URL | Purpose |
 | --- | --- |
 | http://localhost:8080/api/v1/health | Health |

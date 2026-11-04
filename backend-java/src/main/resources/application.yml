@@ -1,17 +1,18 @@
 server:
-  port: ${SERVER_PORT:8080}
+  # Render sets PORT; local/dev can use SERVER_PORT
+  port: ${PORT:${SERVER_PORT:8080}}
 
 spring:
   application:
     name: monthly-budget-api
   datasource:
-    # Neon Postgres (pooled connection string)
-    url: jdbc:postgresql://ep-cool-river-bed2ay6c-pooler.c-9.us-east-2.aws.neon.tech:5432/neondb?sslmode=require&prepareThreshold=0
-    username: neondb_owner
-    password: npg_sqQR2alwYy9i
+    # Override on Render with SPRING_DATASOURCE_* env vars
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ep-cool-river-bed2ay6c-pooler.c-9.us-east-2.aws.neon.tech:5432/neondb?sslmode=require&prepareThreshold=0}
+    username: ${SPRING_DATASOURCE_USERNAME:neondb_owner}
+    password: ${SPRING_DATASOURCE_PASSWORD:npg_sqQR2alwYy9i}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 5
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:5}
   jpa:
     hibernate:
       ddl-auto: update
@@ -29,7 +30,7 @@ spring:
 
 app:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:5174}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:5174,https://prompt-sirocco-aabqv8p.tmp.now}
 
 springdoc:
   api-docs:

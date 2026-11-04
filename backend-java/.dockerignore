@@ -1,0 +1,15 @@
+.gradle/
+build/
+bin/
+out/
+target/
+.idea/
+*.iml
+.vscode/
+.env
+*.log
+.DS_Store
+http/
+README.md
+**/.git
+**/node_modules
