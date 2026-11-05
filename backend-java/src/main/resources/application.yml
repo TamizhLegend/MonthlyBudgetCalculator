@@ -38,9 +38,8 @@ app:
     issuer: ${NEON_AUTH_ISSUER:https://ep-cool-river-bed2ay6c.neonauth.c-9.us-east-2.aws.neon.tech}
   cors:
     # Comma-separated origins / patterns (Spring allowedOriginPatterns).
-    # On Render, set CORS_ALLOWED_ORIGINS to your Vercel URL(s), e.g.:
-    #   https://your-app.vercel.app,https://*.vercel.app,http://localhost:5173
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:5174,https://*.vercel.app,https://prompt-sirocco-aabqv8p.tmp.now,https://frontend-seven-zeta-mpo1ekhtev.vercel.app}
+    # Prefer setting CORS_ALLOWED_ORIGINS on Render to your live Vercel URL.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:5174,https://*.vercel.app,https://monthly-budget-calculator-tau.vercel.app,https://frontend-seven-zeta-mpo1ekhtev.vercel.app}
 
 springdoc:
   api-docs:

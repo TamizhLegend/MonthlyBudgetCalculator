@@ -16,11 +16,13 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         String[] origins = corsProperties.allowedOrigins().split("\\s*,\\s*");
+        // Keep MVC CORS in sync with Security CorsConfigurationSource for /api/**
         registry.addMapping("/api/**")
-                // Patterns allow https://*.vercel.app (exact allowedOrigins cannot).
                 .allowedOriginPatterns(origins)
-                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD")
                 .allowedHeaders("*")
-                .allowCredentials(true);
+                .exposedHeaders("Authorization", "Content-Type")
+                .allowCredentials(true)
+                .maxAge(3600);
     }
 }
