@@ -63,4 +63,30 @@ public class CategoryBudgetEntity {
     public void setBudgetLimit(Double budgetLimit) {
         this.budgetLimit = budgetLimit;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof CategoryBudgetEntity other)) {
+            return false;
+        }
+        if (id != null && other.id != null) {
+            return id.equals(other.id);
+        }
+        return category != null && category.equals(other.category)
+                && month != null && other.month != null
+                && month.getId() != null && month.getId().equals(other.month.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        if (id != null) {
+            return id.hashCode();
+        }
+        int result = category != null ? category.hashCode() : 0;
+        result = 31 * result + (month != null && month.getId() != null ? month.getId().hashCode() : 0);
+        return result;
+    }
 }

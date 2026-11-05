@@ -6,13 +6,14 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,10 +43,16 @@ public class MonthEntity {
     @Column(name = "last_updated", nullable = false)
     private Instant lastUpdated;
 
+    /**
+     * Set (not List): EntityGraph join-fetches items + categoryBudgets together, which
+     * multiplies SQL rows (cartesian product). A List keeps every duplicate row;
+     * a Set collapses them by entity identity.
+     */
     @OneToMany(mappedBy = "month", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<ExpenseItemEntity> items = new ArrayList<>();
+    @OrderBy("date ASC, id ASC")
+    private Set<ExpenseItemEntity> items = new LinkedHashSet<>();
 
-    /** Set (not List) so Hibernate can join-fetch both collections without MultipleBagFetchException. */
+    /** Set so Hibernate can join-fetch both collections without MultipleBagFetchException. */
     @OneToMany(mappedBy = "month", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<CategoryBudgetEntity> categoryBudgets = new HashSet<>();
 
@@ -105,11 +112,11 @@ public class MonthEntity {
         this.lastUpdated = lastUpdated;
     }
 
-    public List<ExpenseItemEntity> getItems() {
+    public Set<ExpenseItemEntity> getItems() {
         return items;
     }
 
-    public void setItems(List<ExpenseItemEntity> items) {
+    public void setItems(Set<ExpenseItemEntity> items) {
         this.items = items;
     }
 
@@ -124,10 +131,10 @@ public class MonthEntity {
     public void replaceItems(List<ExpenseItemEntity> newItems) {
         items.clear();
         if (newItems != null) {
-            newItems.forEach(item -> {
+            for (ExpenseItemEntity item : newItems) {
                 item.setMonth(this);
                 items.add(item);
-            });
+            }
         }
     }
 

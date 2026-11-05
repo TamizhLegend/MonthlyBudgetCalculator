@@ -35,6 +35,7 @@ public class MonthMapper {
 
         List<ExpenseItem> items = new ArrayList<>();
         if (entity.getItems() != null) {
+            // LinkedHashSet + @OrderBy already unique; map in collection order
             for (ExpenseItemEntity item : entity.getItems()) {
                 items.add(toItemDto(item));
             }
