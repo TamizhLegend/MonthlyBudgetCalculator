@@ -14,12 +14,23 @@ function deriveDataApiUrl(neonAuthUrl: string): string {
   return neonAuthUrl.replace('.neonauth.', '.apirest.').replace(/\/auth\/?$/, '/rest/v1');
 }
 
+/**
+ * credentials: 'include' is required for cross-origin setups
+ * (Vercel → neonauth.*.neon.tech) so authClient.token() can read the session cookie
+ * and return an EdDSA JWT for the Spring Boot API.
+ */
 export const neon = createClient({
   auth: {
     url: authUrl || 'http://localhost/missing-neon-auth-url',
-    adapter: BetterAuthReactAdapter(),
+    adapter: BetterAuthReactAdapter({
+      fetchOptions: {
+        credentials: 'include',
+      },
+    }),
   },
   dataApi: {
-    url: import.meta.env.VITE_NEON_DATA_API_URL || (authUrl ? deriveDataApiUrl(authUrl) : 'http://localhost/missing-data-api'),
+    url:
+      import.meta.env.VITE_NEON_DATA_API_URL ||
+      (authUrl ? deriveDataApiUrl(authUrl) : 'http://localhost/missing-data-api'),
   },
 });

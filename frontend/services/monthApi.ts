@@ -1,6 +1,6 @@
 import { CategoryLimit, MonthExpenseData, RecurringExpense } from '../types';
 import { API_BASE_URL } from '../config/apiConfig';
-import { getAccessToken } from '../lib/authToken';
+import { clearAccessTokenCache, getAccessToken } from '../lib/authToken';
 
 async function parseError(res: Response): Promise<string> {
   try {
@@ -11,7 +11,7 @@ async function parseError(res: Response): Promise<string> {
     // ignore non-JSON error bodies
   }
   if (res.status === 401) {
-    return 'Unauthorized — sign in again (missing or expired Neon Auth token).';
+    return 'Unauthorized — sign in again (missing or expired Neon Auth EdDSA JWT).';
   }
   return `Request failed (${res.status})`;
 }
@@ -29,10 +29,15 @@ async function authHeaders(extra?: HeadersInit): Promise<HeadersInit> {
 
 async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   const headers = await authHeaders(init?.headers);
-  return fetch(`${API_BASE_URL}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers,
   });
+  // Access JWTs expire ~15m; clear cache so the next call refreshes via auth.token()
+  if (res.status === 401) {
+    clearAccessTokenCache();
+  }
+  return res;
 }
 
 /** Create or update a month in the database (PUT upsert). */
