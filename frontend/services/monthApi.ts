@@ -97,10 +97,10 @@ export async function saveCategoryLimits(limits: CategoryLimit[]): Promise<Categ
   return res.json();
 }
 
-/** Lightweight connectivity check used by the UI boot screen (public — no JWT). */
+/** Lightweight connectivity check used by the UI boot screen (public — no JWT). Hits DB via SELECT 1. */
 export async function checkApiHealth(): Promise<boolean> {
   const res = await fetch(`${API_BASE_URL}/health`);
   if (!res.ok) return false;
   const body = await res.json().catch(() => null);
-  return body?.status === 'UP';
+  return body?.status === 'UP' && body?.database !== 'DOWN';
 }
