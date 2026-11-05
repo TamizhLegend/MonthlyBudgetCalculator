@@ -6,6 +6,12 @@ type JwtHeader = { alg?: string; typ?: string };
 
 let cachedToken: { value: string; expMs: number } | null = null;
 
+function authBaseUrl(): string | null {
+  const raw = (import.meta.env.VITE_NEON_AUTH_URL as string | undefined)?.trim();
+  if (!raw) return null;
+  return raw.replace(/\/$/, '');
+}
+
 function decodeJwtPart(part: string): unknown {
   const padded = part.replace(/-/g, '+').replace(/_/g, '/');
   const pad = '='.repeat((4 - (padded.length % 4)) % 4);
@@ -49,10 +55,36 @@ function acceptAccessToken(token: string | null | undefined): string | null {
 }
 
 /**
+ * Neon Auth SDK maps `/token` onto the getSession cache hook, so `auth.token()` often
+ * returns the cached `{ session, user }` object instead of `{ token }`.
+ * Hit the JWT endpoint directly with the session cookie.
+ */
+async function fetchJwtFromTokenEndpoint(): Promise<string | null> {
+  const base = authBaseUrl();
+  if (!base) return null;
+
+  try {
+    const res = await fetch(`${base}/token`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) {
+      console.warn('[authToken] GET /token failed:', res.status, res.statusText);
+      return null;
+    }
+    const body = (await res.json().catch(() => null)) as { token?: string } | null;
+    return acceptAccessToken(body?.token);
+  } catch (err) {
+    console.warn('[authToken] GET /token error:', err);
+    return null;
+  }
+}
+
+/**
  * Resolve a Neon Managed Auth JWT for Spring Boot (JWKS / EdDSA).
  *
- * Correct endpoint: GET /neondb/auth/token via auth.token()
- * Do NOT call getJWTToken() — that hits /get-jwt-token (404 on Managed Auth).
+ * Prefer a direct GET …/auth/token (avoids neon-js session-cache bug on auth.token()).
  * Do NOT send Better Auth session.token (typically HS256).
  */
 export async function getAccessToken(): Promise<string | null> {
@@ -60,8 +92,13 @@ export async function getAccessToken(): Promise<string | null> {
     return cachedToken.value;
   }
 
+  const fromEndpoint = await fetchJwtFromTokenEndpoint();
+  if (fromEndpoint) return fromEndpoint;
+
   const auth = neon.auth as {
-    token?: () => Promise<TokenResponse>;
+    token?: (opts?: {
+      fetchOptions?: { credentials?: RequestCredentials };
+    }) => Promise<TokenResponse>;
     getSession?: (opts?: {
       fetchOptions?: {
         credentials?: RequestCredentials;
@@ -78,10 +115,10 @@ export async function getAccessToken(): Promise<string | null> {
     }>;
   };
 
-  // 1) Recommended: auth.token() → GET …/auth/token → EdDSA JWT
+  // Fallback: SDK auth.token() (may be broken by session cache — still try)
   try {
     if (typeof auth.token === 'function') {
-      const result = await auth.token();
+      const result = await auth.token({ fetchOptions: { credentials: 'include' } });
       const jwt = acceptAccessToken(result?.data?.token);
       if (jwt) return jwt;
     }
@@ -89,7 +126,7 @@ export async function getAccessToken(): Promise<string | null> {
     // continue
   }
 
-  // 2) getSession + set-auth-jwt response header / access_token field
+  // Fallback: set-auth-jwt on getSession (needs Access-Control-Expose-Headers)
   try {
     if (typeof auth.getSession === 'function') {
       let headerJwt: string | null = null;
@@ -110,13 +147,13 @@ export async function getAccessToken(): Promise<string | null> {
       const sessionObj = session?.data?.session;
       const fromAccess =
         acceptAccessToken(sessionObj?.access_token) ||
-        acceptAccessToken(sessionObj?.accessToken);
+        acceptAccessToken(sessionObj?.accessToken) ||
+        acceptAccessToken(sessionObj?.token);
       if (fromAccess) return fromAccess;
 
-      // Explicitly ignore session.token when it is HS256
       if (looksLikeJwt(sessionObj?.token) && !isNeonAccessJwt(sessionObj.token)) {
         console.warn(
-          '[authToken] Ignoring session.token (not EdDSA). Spring Boot expects Neon Auth JWT from auth.token().'
+          '[authToken] Ignoring session.token (not EdDSA). Expected JWT from GET /auth/token.'
         );
       }
     }

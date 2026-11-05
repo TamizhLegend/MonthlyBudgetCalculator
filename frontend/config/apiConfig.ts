@@ -8,9 +8,9 @@
  *   VITE_API_BASE_URL=https://monthlybudgetcalculator.onrender.com/api/v1
  *   VITE_BACKEND_ORIGIN=https://monthlybudgetcalculator.onrender.com
  *
- * Auth: Neon Auth EdDSA JWT (from auth.token()) is attached as Authorization: Bearer.
+ * Auth: every API call (except /health) goes through lib/apiClient.ts, which sets
+ * Authorization: Bearer <Neon EdDSA JWT> from lib/authToken.ts (GET /auth/token).
  * Do not send Better Auth session.token (HS256) — Spring JWKS only verifies EdDSA.
- * See lib/authToken.ts + services/monthApi.ts.
  */
 const trimSlash = (value: string) => value.replace(/\/+$/, '');
 
