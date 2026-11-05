@@ -1,9 +1,12 @@
 package com.monthlybudget.config;
 
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +26,8 @@ public class OpenApiConfig {
 
     @Bean
     public OpenAPI monthlyBudgetOpenApi() {
+        final String bearerScheme = "bearer-jwt";
+
         return new OpenAPI()
                 .info(new Info()
                         .title("Monthly Budget Calculator API")
@@ -31,8 +36,8 @@ public class OpenApiConfig {
                                 
                                 **Storage:** Neon PostgreSQL
                                 
-                                **Auth:** UI login is Neon Auth (frontend only). This API does not
-                                validate JWTs yet — protect with CORS / network controls, or add Spring Security later.
+                                **Auth:** Neon Managed Auth JWT (EdDSA). Click **Authorize** and paste
+                                a Bearer token from the signed-in frontend session. `/api/v1/health` stays public.
                                 
                                 Open Swagger at `/swagger-ui/index.html` (or `/docs`).
                                 """)
@@ -51,11 +56,19 @@ public class OpenApiConfig {
                                 .url("http://localhost:" + serverPort)
                                 .description("Local Spring Boot API")
                 ))
+                .components(new Components()
+                        .addSecuritySchemes(bearerScheme, new SecurityScheme()
+                                .name(bearerScheme)
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")
+                                .description("Neon Auth JWT (from frontend session /auth token)")))
+                .addSecurityItem(new SecurityRequirement().addList(bearerScheme))
                 .tags(List.of(
-                        new Tag().name("Health").description("Liveness check"),
-                        new Tag().name("Months").description("Monthly expense CRUD"),
-                        new Tag().name("Recurring").description("Recurring expense templates"),
-                        new Tag().name("Category Limits").description("Default per-category budget limits")
+                        new Tag().name("Health").description("Liveness check (public)"),
+                        new Tag().name("Months").description("Monthly expense CRUD (JWT required)"),
+                        new Tag().name("Recurring").description("Recurring expense templates (JWT required)"),
+                        new Tag().name("Category Limits").description("Default per-category budget limits (JWT required)")
                 ));
     }
 }

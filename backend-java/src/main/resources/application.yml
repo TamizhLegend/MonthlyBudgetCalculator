@@ -14,6 +14,7 @@ spring:
     hikari:
       maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:5}
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     open-in-view: false
@@ -30,11 +31,16 @@ spring:
 
 app:
   public-api-url: ${APP_PUBLIC_API_URL:https://monthlybudgetcalculator.onrender.com}
+  neon-auth:
+    # Public JWKS for Neon Managed Auth (EdDSA)
+    jwks-url: ${NEON_AUTH_JWKS_URL:https://ep-cool-river-bed2ay6c.neonauth.c-9.us-east-2.aws.neon.tech/neondb/auth/.well-known/jwks.json}
+    # Issuer is the auth host origin (no /neondb/auth path)
+    issuer: ${NEON_AUTH_ISSUER:https://ep-cool-river-bed2ay6c.neonauth.c-9.us-east-2.aws.neon.tech}
   cors:
     # Comma-separated origins / patterns (Spring allowedOriginPatterns).
     # On Render, set CORS_ALLOWED_ORIGINS to your Vercel URL(s), e.g.:
     #   https://your-app.vercel.app,https://*.vercel.app,http://localhost:5173
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:5174,https://*.vercel.app,https://prompt-sirocco-aabqv8p.tmp.now}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:5174,https://*.vercel.app,https://prompt-sirocco-aabqv8p.tmp.now,https://frontend-seven-zeta-mpo1ekhtev.vercel.app}
 
 springdoc:
   api-docs:

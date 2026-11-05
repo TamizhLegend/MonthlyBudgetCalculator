@@ -28,12 +28,19 @@ Render sets `PORT` automatically; the app listens on `${PORT}`.
 
 Health check path: `/api/v1/health`
 
-### Auth model (important)
+### Auth model
 
-- **Frontend (Vercel):** Neon Auth signs users in (`SignedIn` / `/auth/sign-in`). That only unlocks the React UI.
-- **Backend (Render):** Has **no JWT / Spring Security**. API calls from `monthApi.ts` do **not** send an `Authorization` header. Anyone who can reach the URL can call the API; CORS limits *browser* access from unknown sites.
+- **Frontend (Vercel):** Neon Auth signs users in (`SignedIn` / `/auth/sign-in`).
+- **API calls:** Frontend sends `Authorization: Bearer <Neon JWT>` on `/api/v1/**` (except health).
+- **Backend (Render):** Spring Security OAuth2 resource server validates the JWT against Neon JWKS (`EdDSA`). Unauthenticated API calls return `401`.
+- **Public:** `/api/v1/health`, Swagger UI, OpenAPI JSON.
 
-To fully protect the API later, verify Neon JWTs in Spring Security and send `Authorization: Bearer <token>` from the frontend.
+Render env (optional overrides):
+
+| Variable | Purpose |
+| --- | --- |
+| `NEON_AUTH_JWKS_URL` | JWKS URL (default set in `application.yml`) |
+| `NEON_AUTH_ISSUER` | JWT issuer host origin |
 
 ### Frontend (Vercel)
 

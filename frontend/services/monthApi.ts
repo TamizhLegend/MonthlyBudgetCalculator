@@ -1,5 +1,6 @@
 import { CategoryLimit, MonthExpenseData, RecurringExpense } from '../types';
 import { API_BASE_URL } from '../config/apiConfig';
+import { getAccessToken } from '../lib/authToken';
 
 async function parseError(res: Response): Promise<string> {
   try {
@@ -9,12 +10,34 @@ async function parseError(res: Response): Promise<string> {
   } catch {
     // ignore non-JSON error bodies
   }
+  if (res.status === 401) {
+    return 'Unauthorized — sign in again (missing or expired Neon Auth token).';
+  }
   return `Request failed (${res.status})`;
+}
+
+async function authHeaders(extra?: HeadersInit): Promise<HeadersInit> {
+  const headers: Record<string, string> = {
+    ...(extra as Record<string, string> | undefined),
+  };
+  const token = await getAccessToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const headers = await authHeaders(init?.headers);
+  return fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers,
+  });
 }
 
 /** Create or update a month in the database (PUT upsert). */
 export async function upsertMonth(month: MonthExpenseData): Promise<MonthExpenseData> {
-  const res = await fetch(`${API_BASE_URL}/months/${encodeURIComponent(month.id)}`, {
+  const res = await apiFetch(`/months/${encodeURIComponent(month.id)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(month),
@@ -26,7 +49,7 @@ export async function upsertMonth(month: MonthExpenseData): Promise<MonthExpense
 }
 
 export async function listMonths(): Promise<MonthExpenseData[]> {
-  const res = await fetch(`${API_BASE_URL}/months`);
+  const res = await apiFetch('/months');
   if (!res.ok) {
     throw new Error(await parseError(res));
   }
@@ -35,7 +58,7 @@ export async function listMonths(): Promise<MonthExpenseData[]> {
 
 /** Load one month from the database by id (YYYY-MM). */
 export async function getMonth(id: string): Promise<MonthExpenseData> {
-  const res = await fetch(`${API_BASE_URL}/months/${encodeURIComponent(id)}`);
+  const res = await apiFetch(`/months/${encodeURIComponent(id)}`);
   if (!res.ok) {
     throw new Error(await parseError(res));
   }
@@ -43,7 +66,7 @@ export async function getMonth(id: string): Promise<MonthExpenseData> {
 }
 
 export async function deleteMonth(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/months/${encodeURIComponent(id)}`, {
+  const res = await apiFetch(`/months/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
   if (!res.ok) {
@@ -52,7 +75,7 @@ export async function deleteMonth(id: string): Promise<void> {
 }
 
 export async function listRecurring(): Promise<RecurringExpense[]> {
-  const res = await fetch(`${API_BASE_URL}/recurring`);
+  const res = await apiFetch('/recurring');
   if (!res.ok) {
     throw new Error(await parseError(res));
   }
@@ -61,7 +84,7 @@ export async function listRecurring(): Promise<RecurringExpense[]> {
 
 /** Replace the full recurring list in the database. */
 export async function saveRecurring(expenses: RecurringExpense[]): Promise<RecurringExpense[]> {
-  const res = await fetch(`${API_BASE_URL}/recurring`, {
+  const res = await apiFetch('/recurring', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(expenses),
@@ -73,7 +96,7 @@ export async function saveRecurring(expenses: RecurringExpense[]): Promise<Recur
 }
 
 export async function listCategoryLimits(): Promise<CategoryLimit[]> {
-  const res = await fetch(`${API_BASE_URL}/category-limits`);
+  const res = await apiFetch('/category-limits');
   if (!res.ok) {
     throw new Error(await parseError(res));
   }
@@ -82,7 +105,7 @@ export async function listCategoryLimits(): Promise<CategoryLimit[]> {
 
 /** Replace the full category-limits list in the database. */
 export async function saveCategoryLimits(limits: CategoryLimit[]): Promise<CategoryLimit[]> {
-  const res = await fetch(`${API_BASE_URL}/category-limits`, {
+  const res = await apiFetch('/category-limits', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(limits),
@@ -93,7 +116,7 @@ export async function saveCategoryLimits(limits: CategoryLimit[]): Promise<Categ
   return res.json();
 }
 
-/** Lightweight connectivity check used by the UI boot screen. */
+/** Lightweight connectivity check used by the UI boot screen (public — no JWT). */
 export async function checkApiHealth(): Promise<boolean> {
   const res = await fetch(`${API_BASE_URL}/health`);
   if (!res.ok) return false;

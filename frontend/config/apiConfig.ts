@@ -8,8 +8,8 @@
  *   VITE_API_BASE_URL=https://monthlybudgetcalculator.onrender.com/api/v1
  *   VITE_BACKEND_ORIGIN=https://monthlybudgetcalculator.onrender.com
  *
- * Auth note: Neon Auth only gates the React UI. API fetch calls do not send
- * a JWT today — the Spring Boot API is open CORS-protected, not token-protected.
+ * Auth: Neon Auth JWT is attached as Authorization: Bearer on API calls
+ * (see lib/authToken.ts + services/monthApi.ts). Spring validates via JWKS.
  */
 const trimSlash = (value: string) => value.replace(/\/+$/, '');
 
