@@ -51,10 +51,9 @@ function acceptAccessToken(token: string | null | undefined): string | null {
 /**
  * Resolve a Neon Managed Auth JWT for Spring Boot (JWKS / EdDSA).
  *
- * Do NOT send Better Auth `session.token` — that is typically HS256 and causes:
- * "Signed JWT rejected: Another algorithm expected, or no matching key(s) found"
- *
- * Prefer auth.token() / set-auth-jwt / access_token (EdDSA).
+ * Correct endpoint: GET /neondb/auth/token via auth.token()
+ * Do NOT call getJWTToken() — that hits /get-jwt-token (404 on Managed Auth).
+ * Do NOT send Better Auth session.token (typically HS256).
  */
 export async function getAccessToken(): Promise<string | null> {
   if (cachedToken && cachedToken.expMs > Date.now() + 30_000) {
@@ -63,7 +62,6 @@ export async function getAccessToken(): Promise<string | null> {
 
   const auth = neon.auth as {
     token?: () => Promise<TokenResponse>;
-    getJWTToken?: () => Promise<string | null>;
     getSession?: (opts?: {
       fetchOptions?: {
         credentials?: RequestCredentials;
@@ -80,17 +78,7 @@ export async function getAccessToken(): Promise<string | null> {
     }>;
   };
 
-  // 1) Dedicated JWT helper if the Neon wrapper exposes it
-  try {
-    if (typeof auth.getJWTToken === 'function') {
-      const jwt = acceptAccessToken(await auth.getJWTToken());
-      if (jwt) return jwt;
-    }
-  } catch {
-    // continue
-  }
-
-  // 2) Recommended: auth.token() → EdDSA JWT (requires session cookie + credentials: include)
+  // 1) Recommended: auth.token() → GET …/auth/token → EdDSA JWT
   try {
     if (typeof auth.token === 'function') {
       const result = await auth.token();
@@ -101,7 +89,7 @@ export async function getAccessToken(): Promise<string | null> {
     // continue
   }
 
-  // 3) getSession + set-auth-jwt response header / access_token field
+  // 2) getSession + set-auth-jwt response header / access_token field
   try {
     if (typeof auth.getSession === 'function') {
       let headerJwt: string | null = null;
@@ -125,7 +113,7 @@ export async function getAccessToken(): Promise<string | null> {
         acceptAccessToken(sessionObj?.accessToken);
       if (fromAccess) return fromAccess;
 
-      // Explicitly ignore session.token when it is HS256 (common Better Auth session JWT)
+      // Explicitly ignore session.token when it is HS256
       if (looksLikeJwt(sessionObj?.token) && !isNeonAccessJwt(sessionObj.token)) {
         console.warn(
           '[authToken] Ignoring session.token (not EdDSA). Spring Boot expects Neon Auth JWT from auth.token().'
