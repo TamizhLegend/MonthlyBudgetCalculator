@@ -1,12 +1,9 @@
 package com.monthlybudget.config;
 
-import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.jwk.source.RemoteJWKSet;
-import com.nimbusds.jose.proc.JWSVerificationKeySelector;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jose.util.DefaultResourceRetriever;
-import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +17,6 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.util.StringUtils;
 
@@ -57,8 +53,8 @@ public class SecurityConfig {
     }
 
     /**
-     * Neon Managed Auth signs JWTs with EdDSA (Ed25519). Spring's SignatureAlgorithm
-     * enum does not include EdDSA yet, so wire Nimbus directly.
+     * Neon Managed Auth signs JWTs with EdDSA (Ed25519 / OKP).
+     * Standard {@code NimbusJwtDecoder} cannot verify those keys — use a custom decoder.
      */
     @Bean
     JwtDecoder jwtDecoder(
@@ -71,15 +67,10 @@ public class SecurityConfig {
         );
         JWKSource<SecurityContext> jwkSource = new RemoteJWKSet<>(new URL(jwksUrl), retriever);
 
-        DefaultJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
-        jwtProcessor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.EdDSA, jwkSource));
-
-        NimbusJwtDecoder decoder = new NimbusJwtDecoder(jwtProcessor);
-
         OAuth2TokenValidator<Jwt> validator = StringUtils.hasText(issuer)
                 ? JwtValidators.createDefaultWithIssuer(issuer)
                 : JwtValidators.createDefault();
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(validator));
-        return decoder;
+
+        return new NeonEdDsaJwtDecoder(jwkSource, new DelegatingOAuth2TokenValidator<>(validator));
     }
 }
